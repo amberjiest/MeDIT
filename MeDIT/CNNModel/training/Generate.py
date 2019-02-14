@@ -8,7 +8,7 @@ from MeDIT.SaveAndLoad import LoadH5InfoForGenerate, LoadH5
 from MeDIT.ArrayProcess import ExtractPatch
 from MeDIT.DataAugmentor import AugmentParametersGenerator, DataAugmentor2D, random_2d_augment
 
-def _GetInputOutputNumber(case_folder):
+def GetKeysFromStoreFolder(case_folder):
     key_list = []
     for case in os.listdir(case_folder):
         case_path = os.path.join(case_folder, case)
@@ -20,6 +20,12 @@ def _GetInputOutputNumber(case_folder):
 
     if len(key_list) == 0:
         print('there is no h5 file, check the folder path: ', case_folder)
+        return []
+
+    return key_list
+
+def _GetInputOutputNumber(case_folder):
+    key_list = GetKeysFromStoreFolder(case_folder)
 
     input_number, output_number = 0, 0
     for key in key_list:
