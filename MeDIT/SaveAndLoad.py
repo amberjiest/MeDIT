@@ -557,3 +557,49 @@ def GenerateROIFromSPIN(tob_file_path, ref_image):
 
     recon_data = np.swapaxes(recon_data, 0, 1)
     return recon_data
+
+def fid_read(file_path):
+    with open(file_path, 'rb') as f:
+        #1 double
+        f.seek(0,0)
+        bytes = f.read(8)
+        file_version, = struct.unpack('d', bytes)
+        #print(file_version)
+        
+        #4 int
+        bytes = f.read(4*4)
+        section_size = struct.unpack('4i', bytes)
+        #print(section_size)    
+        f.seek(8 + 4*4 + section_size[0] + section_size[1] + section_size[2], 0)
+        
+        #5 int
+        bytes = f.read(5*4)
+        dim = struct.unpack('5i', bytes)
+        #print(dim)
+        length = dim[4]*dim[3]*dim[2]*dim[1]*dim[0]
+                
+        fid = np.fromfile(f, dtype=np.complex64, count=length)
+        shape = (dim[4], dim[3], dim[2], dim[1], dim[0])
+        fid = fid.reshape(shape)
+        
+        return fid, file_version
+    
+ 
+def fid_data_cine(data, fft=True, transpose=False):
+    plt.ion()
+    dim = data.shape
+    data = data.reshape((-1, dim[-2],  dim[-1]))
+    for step in range(data.shape[0]):  
+        plt.cla()
+        image = data[step, :, :]
+        if fft:
+            image = np.fft.fftshift(np.fft.ifftn(image))
+            
+        if transpose:
+            plt.imshow(np.transpose(abs(image)), cmap = 'gray')
+        else:
+            plt.imshow(abs(image), cmap = 'gray')
+        
+        plt.pause(0.1)  
+    plt.ioff()  
+    plt.show()
