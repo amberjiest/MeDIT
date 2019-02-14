@@ -1,23 +1,9 @@
-from keras.layers import Conv2D, MaxPool2D, Input, Flatten, Dense, Dropout, PReLU, UpSampling2D
-from keras.layers import BatchNormalization, Activation, Concatenate, Add, Multiply
+from keras.layers import Conv2D, MaxPool2D, Input, UpSampling2D
+from keras.layers import Activation, Concatenate, Add
 from keras.models import Model
-from keras.optimizers import Adam
-from keras import backend as K
-import tensorflow as tf
+from MeDIT.CNNModel.Model.UsualLayer import Conv2D_BN, Conv2D_BN_Tanh
 
 import numpy as np
-
-def Conv2D_BN(x, filters, filter_size, padding='same', strides=(1, 1)):
-    x = Conv2D(filters, filter_size, strides=strides, padding=padding, use_bias=False)(x)
-    x = BatchNormalization(axis=3, scale=False)(x)
-    x = PReLU()(x)
-    return x
-
-def Conv2D_BN_Tanh(x, filters, filter_size, padding='same', strides=(1, 1)):
-    x = Conv2D(filters, filter_size, strides=strides, padding=padding, use_bias=False)(x)
-    x = BatchNormalization(axis=3, scale=False)(x)
-    x = Activation('tanh')(x)
-    return x
 
 def EncodingPart(input_shape, filters=64, blocks=3):
     inputs = Input(input_shape)
