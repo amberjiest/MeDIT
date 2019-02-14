@@ -399,11 +399,13 @@ def FindDWIFile(candidate_list, is_separate=False):
     dwi_list = []
     if is_separate:
         for dwi in candidate_list:
-            if (('dwi' in dwi) or ('diff' in dwi)) and ('_b' in dwi) and (('.nii' in dwi) or ('.nii.gz' in dwi)):
+            if (('dwi' in dwi) or ('diff' in dwi)) and ('_b' in dwi) and (('.nii' in dwi) or ('.nii.gz' in dwi)) and \
+                    ('Reg' not in dwi) and ('Resize' not in dwi):
                 dwi_list.append(dwi)
     else:
         for dwi in candidate_list:
-            if (('dwi' in dwi) or ('diff' in dwi)) and ('_b' not in dwi) and (('.nii' in dwi) or ('.nii.gz' in dwi)):
+            if (('dwi' in dwi) or ('diff' in dwi)) and ('_b' not in dwi) and (('.nii' in dwi) or ('.nii.gz' in dwi)) and\
+                    ('Reg' not in dwi) and ('Resize' not in dwi):
                 dwi_list.append(dwi)
     return dwi_list
 
