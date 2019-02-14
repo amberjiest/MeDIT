@@ -127,6 +127,7 @@ def ImageInImageOut2DTest(root_folder, input_shape):
     from MeDIT.Visualization import LoadWaitBar
     input_number, output_number = _GetInputOutputNumber(root_folder)
     case_list = os.listdir(root_folder)
+    case_list = [case for case in case_list if case.endswith('.h5')]
 
     input_list = [[] for index in range(input_number)]
     output_list = [[] for index in range(output_number)]
@@ -134,8 +135,6 @@ def ImageInImageOut2DTest(root_folder, input_shape):
     for case in case_list:
         LoadWaitBar(len(case_list), case_list.index(case))
         case_path = os.path.join(root_folder, case)
-        if not case_path.endswith('.h5'):
-            continue
 
         input_data_list, output_data_list = [], []
         file = h5py.File(case_path, 'r')
@@ -153,7 +152,7 @@ def ImageInImageOut2DTest(root_folder, input_shape):
         inputs = _MakeKerasFormat(input_list)
         outputs = _MakeKerasFormat(output_list)
 
-    return inputs, outputs
+    return inputs, outputs, case_list
 
 def _TestOutput1():
     input_list, output_list = ImageInImageOut2D(r'c:\SharedFolder\ProstateSegment\Input_1_Ouput_1\testing',
@@ -245,12 +244,11 @@ def ImageInMultiROIOut2DTest(root_folder, input_shape, hierarchical_level=0):
     output_list = [[] for index in range(hierarchical_level + 1)]
 
     case_list = sorted(os.listdir(root_folder))
+    case_list = [case for case in case_list if case.endswith('.h5')]
 
     for case in case_list:
         LoadWaitBar(len(case_list), case_list.index(case))
         case_path = os.path.join(root_folder, case)
-        if not case_path.endswith('.h5'):
-            continue
 
         input_data_list, output_data_list = [], []
         file = h5py.File(case_path, 'r')
@@ -279,7 +277,7 @@ def ImageInMultiROIOut2DTest(root_folder, input_shape, hierarchical_level=0):
         inputs = _MakeKerasFormat(input_list)
         outputs = _MakeKerasFormat(output_list)
 
-    return inputs, outputs
+    return inputs, outputs, case_list
 
 def _TestOutput3():
     input_list, output_list = ImageInMultiROIOut2D(r'v:\ProstateSegment\data\Input_1_Ouput_1\testing',
