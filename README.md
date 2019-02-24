@@ -2,7 +2,7 @@
 
 Medical and Digital Image Toolbox (MeDIT) support a bunch of functions to process medical image and digital images. This was used for the engineers on image processing. 
 
-If you publish any work which uses this package, I will appreciate that you could cite the following publication: [Song Y, Zhang YD, Yan X, Liu H, Zhou M, Hu B, Yang G, Computer-aided diagnosis of prostate cancer using a deep convolutional neural network from multiparametric MRI. J Magn Reson Imaging. 2018 Apr 16. doi: 10.1002/jmri.26047.](https://www.ncbi.nlm.nih.gov/pubmed/29659067) 
+If you publish any work which uses this package, I will appreciate that you could cite this link https://github.com/salan668/MeDIT
 
 Welcome any issues and PR. 
 
