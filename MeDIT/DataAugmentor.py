@@ -1,4 +1,5 @@
 import numpy as np
+import SimpleITK as sitk
 from scipy.interpolate import RegularGridInterpolator
 from collections import OrderedDict
 
@@ -331,6 +332,122 @@ class DataAugmentor2D():
 
         return target_data
 
+class RandomElasticDeformation:
+    """
+    generate randomised elastic deformations
+    along each dim for data augmentation
+    """
+
+    def __init__(self,
+                 num_controlpoints=4,
+                 std_deformation_sigma=15,
+                 proportion_to_augment=0.5,
+                 spatial_rank=3):
+        """
+        This layer elastically deforms the inputs,
+        for data-augmentation purposes.
+
+        :param num_controlpoints:
+        :param std_deformation_sigma:
+        :param proportion_to_augment: what fraction of the images
+            to do augmentation on
+        :param name: name for tensorflow graph
+        (may be computationally expensive).
+        """
+
+        self._bspline_transformation = None
+        self.num_controlpoints = max(num_controlpoints, 2)
+        self.std_deformation_sigma = max(std_deformation_sigma, 1)
+        self.proportion_to_augment = proportion_to_augment
+        if not sitk:
+            self.proportion_to_augment = -1
+        self.spatial_rank = spatial_rank
+
+    def randomise(self, images_shape):
+        if self.proportion_to_augment >= 0:
+            self._randomise_bspline_transformation(images_shape)
+        else:
+            # currently not supported spatial rank for elastic deformation
+            # should support classification in the future
+            print("randomising elastic deformation FAILED")
+            pass
+
+    def _randomise_bspline_transformation(self, shape):
+        # generate transformation
+        if len(shape) == 5:  # for niftynet reader outputs
+            squeezed_shape = [dim for dim in shape[:3] if dim > 1]
+        else:
+            squeezed_shape = shape[:self.spatial_rank]
+        itkimg = sitk.GetImageFromArray(np.zeros(squeezed_shape))
+        trans_from_domain_mesh_size = \
+            [self.num_controlpoints] * itkimg.GetDimension()
+        self._bspline_transformation = sitk.BSplineTransformInitializer(
+            itkimg, trans_from_domain_mesh_size)
+
+        params = self._bspline_transformation.GetParameters()
+        params_numpy = np.asarray(params, dtype=float)
+        params_numpy = params_numpy + np.random.randn(
+            params_numpy.shape[0]) * self.std_deformation_sigma
+
+        # remove z deformations! The resolution in z is too bad
+        # params_numpy[0:int(len(params) / 3)] = 0
+
+        params = tuple(params_numpy)
+        self._bspline_transformation.SetParameters(params)
+
+    def apply_transformation_3d(self, image, interp_order=3):
+        """
+        Apply randomised transformation to 2D or 3D image
+
+        :param image: 2D or 3D array
+        :param interp_order: order of interpolation
+        :return: the transformed image
+        """
+        resampler = sitk.ResampleImageFilter()
+        if interp_order > 1:
+            resampler.SetInterpolator(sitk.sitkBSpline)
+        elif interp_order == 1:
+            resampler.SetInterpolator(sitk.sitkLinear)
+        elif interp_order == 0:
+            resampler.SetInterpolator(sitk.sitkNearestNeighbor)
+        else:
+            return image
+
+        squeezed_image = np.squeeze(image)
+        while squeezed_image.ndim < self.spatial_rank:
+            # pad to the required number of dimensions
+            squeezed_image = squeezed_image[..., None]
+        sitk_image = sitk.GetImageFromArray(squeezed_image)
+
+        resampler.SetReferenceImage(sitk_image)
+        resampler.SetDefaultPixelValue(0)
+        resampler.SetTransform(self._bspline_transformation)
+        out_img_sitk = resampler.Execute(sitk_image)
+        out_img = sitk.GetArrayFromImage(out_img_sitk)
+        return out_img.reshape(image.shape)
+
+def ElasticAugment(input_data_list, num_controlpoints=4, std_deformation_sigma=15, proportion_to_augment=0.5,
+                 spatial_rank=0, interp_order=3):
+    if not isinstance(input_data_list, list):
+        input_data_list = [input_data_list]
+    if not isinstance(interp_order, list):
+        interp_order = [interp_order for index in input_data_list]
+    if spatial_rank == 0:
+        spatial_rank = input_data_list[0].ndim
+
+
+    input_data_list = [np.expand_dims(index, axis=-1) for index in input_data_list]
+
+    rand_pairs = RandomElasticDeformation(num_controlpoints,
+                                          std_deformation_sigma,
+                                          proportion_to_augment,
+                                          spatial_rank)
+
+    rand_pairs.randomise(input_data_list[0].shape)
+    augment_data_list = [rand_pairs.apply_transformation_3d(data, interp) for data, interp in zip(input_data_list, interp_order)]
+
+    return [np.squeeze(data, axis=-1) for data in augment_data_list]
+
 def main():
     pass
     # random_params = {'stretch_x': 0.1, 'stretch_y': 0.1, 'shear': 0.1, 'rotate_z_angle': 20, 'horizontal_flip': True}
@@ -354,6 +471,24 @@ def main():
     #     new_data = aug_generator.Execute(data, interpolation_method='linear')
     #     new_roi = aug_generator.Execute(roi, interpolation_method='nearest')
     #     DrawBoundaryOfBinaryMask(Normalize01(new_data), new_roi)
+
+
+    # Test ElasticAugment
+    from MeDIT.SaveAndLoad import LoadNiiData
+    from MeDIT.Visualization import Imshow3DArray
+    import matplotlib.pyplot as plt
+    image, _, data = LoadNiiData(
+        r'C:\Users\yangs\Desktop\QIAN XING CHUN_siemens\QIAN XING CHUN\MR\20190101\140102.198000\MR20190101140046\005_t2_tse_tra_384_p2.nii')
+    # data = data[..., data.shape[-1] // 2]
+    # plt.imshow(data, cmap='gray')
+    # plt.show()
+    while True:
+        aug_data = ElasticAugment(data, num_controlpoints=4, std_deformation_sigma=3, proportion_to_augment=0.5,)
+
+        # plt.imshow(np.concatenate((data, aug_data, np.abs(data - aug_data)), axis=1), cmap='gray')
+        # plt.show()
+        Imshow3DArray(aug_data[0] - data)
+
 
 if __name__ == '__main__':
     main()

@@ -378,7 +378,8 @@ def Imshow3DArray(data, ROI=None, window_size=[800, 800], window_name='Imshow3D'
     win.setWindowTitle(window_name)
 
     imv.setImage(data)
-    app.exec_()
+    app.exec()
+
 
 def CheckROIForSeries(root_folder, store_folder, key, roi_key):
     import glob
